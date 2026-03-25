@@ -55,9 +55,22 @@ Thumbs.db
 # =========================
 # Testing
 # =========================
+# =========================
+# Testing Output Artifacts
+# =========================
+test_results.json
+test_out.txt
+test_executor.py
+report.html
 .coverage
 htmlcov/
 .pytest_cache/
+
+# =========================
+# Generated AI Artifacts
+# =========================
+generated_tests/
+!generated_tests/.gitkeep
 
 # =========================
 # QA Agent Secrets & Caches
