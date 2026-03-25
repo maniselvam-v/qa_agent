@@ -23,7 +23,8 @@ from src.qa_agent.db.tables import *
 from src.qa_agent.config import settings
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", settings.database_url)
+sync_url = settings.resolved_database_url.replace("+asyncpg", "").replace("+aiosqlite", "")
+config.set_main_option("sqlalchemy.url", sync_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -63,7 +64,7 @@ def run_migrations_online() -> None:
 
     """
     config_section = config.get_section(config.config_ini_section, {})
-    config_section["sqlalchemy.url"] = settings.database_url
+    config_section["sqlalchemy.url"] = sync_url
     connectable = engine_from_config(
         config_section,
         prefix="sqlalchemy.",

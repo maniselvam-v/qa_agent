@@ -86,7 +86,7 @@ if page == "🏠 Home / Overview":
 | Requirement Analyzer | ✅ Ready |
 | Test Case Generator | ✅ Ready |
 | Feature Classifier | ✅ Ready |
-| Test Executor | 🔧 In Progress |
+| Test Executor | ✅ Ready |
 | Bug Reporter | ⏳ Coming Soon |
 | JIRA Integration | ⏳ Coming Soon |
 | PR Analyzer | ⏳ Coming Soon |
@@ -625,21 +625,227 @@ elif page == "🧪 Test Cases Viewer":
         
     st.caption("QA Agent Internal Testing UI — Not for production use")
 
-# --- PAGE 4: TEST RUNNER ---
+# ── PAGE: Test Runner ────────────────────────────────────────────────────────
+
 elif page == "▶️ Test Runner (Coming Soon)":
-    st.header("▶️ Test Runner (Coming Soon)")
-    st.info("🔧 Test Executor agent is currently being built by the execution team.")
+    st.header("▶️ Test Runner")
     
-    st.subheader("Preview")
-    with st.container(border=True):
-        st.multiselect("Select Test Cases to Run", ["TC-REQ-101-01", "TC-REQ-102-01"], disabled=True)
-        st.text_input("Target URL", value="https://staging.example.com", disabled=True)
-        st.button("▶ Run Selected Tests", disabled=True)
-        
-        st.markdown("**Execution Logs:**")
-        st.code("> Waiting for test execution to start...", language="text")
-        
-    st.caption("QA Agent Internal Testing UI — Not for production use")
+    if "generated_scripts" not in st.session_state:
+        st.warning("⚠️ No test scripts generated yet. Go to Test Cases Viewer and click Generate Pytest Scripts first.")
+        st.stop()
+    
+    gen_result = st.session_state["generated_scripts"]
+    all_files = gen_result.get("files", [])
+    
+    st.success(f"✅ {len(all_files)} test files ready to run")
+    
+    st.subheader("⚙️ Run Configuration")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        target_url = st.text_input(
+            "Target App Base URL",
+            value=st.session_state.get("github_url", "http://127.0.0.1:8001"),
+            help="The running app your tests will fire against"
+        )
+    
+        file_options = ["All files"] + [f["filename"] for f in all_files]
+        selected_files = st.multiselect(
+            "Select test files to run",
+            options=file_options,
+            default=["All files"],
+            help="Leave as 'All files' to run everything in generated_tests/"
+        )
+    
+    with col2:
+        marker_options = ["api", "ui", "etl", "performance", "security",
+                          "positive", "negative", "edge"]
+        selected_markers = st.multiselect(
+            "Filter by markers (optional)",
+            options=marker_options,
+            help="Leave empty to run all test types"
+        )
+    
+        st.caption(
+            "💡 Markers let you run only specific types — e.g. select 'api' + 'negative' "
+            "to run only negative API tests"
+        )
+    
+    st.divider()
+    
+    run_clicked = st.button(
+        "▶️ Run Tests",
+        type="primary",
+        use_container_width=True
+    )
+    
+    if run_clicked:
+        st.subheader("🖥️ Execution Log")
+        log_container = st.container(border=True)
+        log_placeholder = log_container.empty()
+        log_lines = []
+    
+        progress_bar = st.progress(0, text="Initialising...")
+    
+        met_col1, met_col2, met_col3, met_col4, met_col5 = st.columns(5)
+        pass_metric  = met_col1.empty()
+        fail_metric  = met_col2.empty()
+        err_metric   = met_col3.empty()
+        skip_metric  = met_col4.empty()
+        total_metric = met_col5.empty()
+        pass_metric.metric("✅ Passed",  0)
+        fail_metric.metric("❌ Failed",  0)
+        err_metric.metric("🔴 Errors",   0)
+        skip_metric.metric("⏭️ Skipped", 0)
+        total_metric.metric("📋 Total",  0)
+    
+        def render_logs(lines):
+            colored = []
+            for l in lines:
+                if "PASSED" in l:
+                    colored.append(f'<span style="color:#2dce74">{l}</span>')
+                elif "FAILED" in l or "AssertionError" in l:
+                    colored.append(f'<span style="color:#f04f4f">{l}</span>')
+                elif "ERROR" in l:
+                    colored.append(f'<span style="color:#f04f4f;font-weight:bold">{l}</span>')
+                elif "SKIPPED" in l:
+                    colored.append(f'<span style="color:#f5a623">{l}</span>')
+                elif l.startswith("=") or l.startswith("_"):
+                    colored.append(f'<span style="color:#5a6070">{l}</span>')
+                elif l.startswith("✅") or l.startswith("💾"):
+                    colored.append(f'<span style="color:#2dce74">{l}</span>')
+                elif l.startswith("❌"):
+                    colored.append(f'<span style="color:#f04f4f">{l}</span>')
+                elif l.startswith("⚠️"):
+                    colored.append(f'<span style="color:#f5a623">{l}</span>')
+                else:
+                    colored.append(l)
+            log_placeholder.markdown(
+                '<div style="background:#0b0c0f;padding:12px;border-radius:8px;'
+                'font-family:monospace;font-size:12px;line-height:1.8;'
+                'white-space:pre-wrap;max-height:400px;overflow-y:auto;">'
+                + "<br>".join(colored) + "</div>",
+                unsafe_allow_html=True
+            )
+    
+        files_to_run = None
+        if "All files" not in selected_files and selected_files:
+            files_to_run = [f"generated_tests/{f}" for f in selected_files]
+    
+        payload = {
+            "test_files":      files_to_run,
+            "markers":         selected_markers if selected_markers else None,
+            "target_base_url": target_url
+        }
+    
+        final_result = None
+        total_tests  = len(all_files) * 3
+    
+        try:
+            with requests.post(
+                f"{BACKEND_URL}/runs/execute",
+                json=payload,
+                stream=True,
+                timeout=600 
+            ) as response:
+                response.raise_for_status()
+                tests_seen = 0
+    
+                for raw_line in response.iter_lines():
+                    if not raw_line:
+                        continue
+                    line = raw_line.decode("utf-8") if isinstance(raw_line, bytes) else raw_line
+                    if not line.startswith("data:"):
+                        continue
+    
+                    try:
+                        event = json.loads(line[5:].strip())
+                    except Exception:
+                        continue
+    
+                    if event["type"] == "log":
+                        log_lines.append(event.get("message", ""))
+                        render_logs(log_lines)
+    
+                        counts = event.get("counts", {})
+                        if counts:
+                            p = counts.get("passed", 0)
+                            f = counts.get("failed", 0)
+                            e = counts.get("errors", 0)
+                            s = counts.get("skipped", 0)
+                            t = p + f + e + s
+                            pass_metric.metric("✅ Passed",   p)
+                            fail_metric.metric("❌ Failed",   f)
+                            err_metric.metric("🔴 Errors",    e)
+                            skip_metric.metric("⏭️ Skipped",  s)
+                            total_metric.metric("📋 Total",   t)
+                            pct = min(int((t / max(total_tests, 1)) * 90), 90)
+                            progress_bar.progress(pct, text=f"Running tests... {t} done")
+    
+                    elif event["type"] == "result":
+                        final_result = event
+                        progress_bar.progress(100, text="Complete ✅")
+    
+                    elif event["type"] == "done":
+                        log_lines.append(event.get("message", ""))
+                        render_logs(log_lines)
+    
+                    elif event["type"] == "error":
+                        st.error(f"❌ {event.get('message')}")
+                        break
+    
+        except requests.exceptions.Timeout:
+            st.error("❌ Execution timed out after 10 minutes.")
+            st.stop()
+        except Exception as e:
+            st.error(f"❌ Error connecting to backend: {str(e)}")
+            st.stop()
+    
+        if final_result:
+            st.session_state["last_run_result"] = final_result
+            summary = final_result.get("summary", {})
+    
+            st.divider()
+            st.subheader("📊 Results")
+    
+            if final_result.get("status") == "pass":
+                st.success("🟢 RELEASE DECISION: PASS — All tests passed")
+            else:
+                st.error(
+                    f"🔴 RELEASE DECISION: FAIL — "
+                    f"{summary.get('failed', 0)} failed, "
+                    f"{summary.get('errors', 0)} errors"
+                )
+    
+            test_results = final_result.get("test_results", [])
+            if test_results:
+                import pandas as pd
+                df = pd.DataFrame([{
+                    "TC ID":    r.get("tc_id") or "—",
+                    "Req ID":   r.get("req_id") or "—",
+                    "Test":     r.get("test_name", "").split("::")[-1][:60],
+                    "Status":   r.get("status", "").upper(),
+                    "Duration": f"{r.get('duration', 0):.3f}s",
+                    "Error":    (r.get("error_message") or "")[:80]
+                } for r in test_results])
+    
+                st.dataframe(df, use_container_width=True, hide_index=True)
+    
+                st.download_button(
+                    label="📥 Download Results JSON",
+                    data=json.dumps(final_result, indent=2),
+                    file_name=f"test_results_{final_result.get('batch_id', 'run')[:8]}.json",
+                    mime="application/json"
+                )
+    
+                failures = [r for r in test_results if r["status"] in ["failed", "error"]]
+                if failures:
+                    st.warning(
+                        f"⚠️ {len(failures)} failures detected. "
+                        f"Go to **Bug Reports** in the sidebar to create JIRA tickets."
+                    )
+                    st.session_state["pending_failures"] = failures
 
 # --- PAGE 5: BUG REPORTS ---
 elif page == "🐛 Bug Reports (Coming Soon)":
