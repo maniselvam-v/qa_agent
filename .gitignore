@@ -60,6 +60,17 @@ htmlcov/
 .pytest_cache/
 
 # =========================
-# Misc
+# QA Agent Secrets & Caches
 # =========================
+*.db
+*.sqlite
 *.sqlite3
+/tmp/
+qa_agent_ui/.streamlit/secrets.toml
+generated_tests/manifest.json
+
+# =========================
+# UV Package Manager
+# =========================
+.uv/
+# Note: uv.lock is intentionally NOT ignored so collaborators receive the exact locked dependency trees.
