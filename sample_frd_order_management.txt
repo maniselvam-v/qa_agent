@@ -1,0 +1,28 @@
+Feature: FR-003 — Shopping Cart
+Version: FRD v1.0
+
+User Stories:
+  US-001: As a logged-in user, I want to add a product to my cart so I can purchase it later.
+    Acceptance Criteria:
+      AC-001: Given a valid product_id and quantity, POST /cart/items returns 201 with cart summary.
+      AC-002: Given stock_quantity < requested quantity, POST /cart/items returns 400 with error message.
+      AC-003: Given an unauthenticated request, POST /cart/items returns 401.
+
+  US-002: As a logged-in user, I want to remove an item from my cart.
+    Acceptance Criteria:
+      AC-004: Given a valid cart_item_id, DELETE /cart/items/:id returns 204.
+      AC-005: Given an invalid cart_item_id, DELETE /cart/items/:id returns 404.
+
+  US-003: As a logged-in user, I want to view my cart total.
+    Acceptance Criteria:
+      AC-006: GET /cart returns 200 with items list and total_price calculated correctly.
+      AC-007: Empty cart returns 200 with empty items array and total_price: 0.
+
+Feature: FR-004 — Order Placement
+  US-004: As a user, I want to place an order from my cart.
+    Acceptance Criteria:
+      AC-008: POST /orders with valid payment returns 201, order_id, and status: "confirmed".
+      AC-009: Stock is decremented by ordered quantity after successful order.
+      AC-010: Cart is cleared after successful order placement.
+      AC-011: POST /orders with failed payment returns 402 with message "Payment failed".
+      AC-012: POST /orders with empty cart returns 400 with message "Cart is empty".

@@ -1,0 +1,51 @@
+Project: OrderFlow — E-Commerce Order Management
+Version: BRD v1.0
+Date: March 2026
+
+--- FUNCTIONAL REQUIREMENTS ---
+
+FR-001: User Authentication
+  The system shall allow users to register and log in using email/password.
+  Users can also authenticate via Google OAuth2.
+  Invalid credentials must return a 401 with message "Invalid credentials".
+  After 5 failed attempts the account must be locked for 15 minutes.
+
+FR-002: Product Catalog
+  The system shall display a paginated list of products.
+  Each product has: id, name, description, price, stock_quantity, category.
+  Products with stock_quantity = 0 shall be marked as "Out of Stock".
+  Search by name and filter by category must be supported.
+
+FR-003: Shopping Cart
+  Authenticated users can add, update, and remove items from their cart.
+  Cart must persist across sessions.
+  Adding an out-of-stock item must return an error.
+  Cart total must reflect real-time price changes.
+
+FR-004: Order Placement
+  Users can place an order from their cart.
+  On order placement: stock must be decremented, cart must be cleared.
+  Payment must be processed before order is confirmed.
+  Order confirmation email must be sent within 60 seconds of placement.
+
+FR-005: Order History
+  Users can view their order history paginated by 10 per page.
+  Each order shows: order_id, items, total, status, created_at.
+  Admin users can view orders for all users.
+
+--- NON-FUNCTIONAL REQUIREMENTS ---
+
+NFR-001: Performance
+  The product listing API must respond within 200ms for up to 1000 concurrent users.
+  The checkout API must handle 500 concurrent requests without failure.
+
+NFR-002: Security
+  All API endpoints except /auth and /products must require JWT authentication.
+  Passwords must be hashed using bcrypt.
+  SQL injection and XSS must be prevented.
+
+NFR-003: Data Integrity
+  Order data must be stored in a Bronze → Silver → Gold ETL pipeline.
+  Bronze: raw order events.
+  Silver: cleaned, validated orders with DQ checks.
+  Gold: aggregated daily/weekly revenue tables.

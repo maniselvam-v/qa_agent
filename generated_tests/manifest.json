@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-03-24T10:20:14.092246",
+  "total_files": 5,
+  "files": [
+    {
+      "req_id": "REQ-001",
+      "filename": "test_REQ_001_user_auth.py",
+      "frameworks": [
+        "httpx",
+        "playwright"
+      ],
+      "filepath": "generated_tests/test_REQ_001_user_auth.py"
+    },
+    {
+      "req_id": "REQ-002",
+      "filename": "test_REQ_002_product_listing.py",
+      "frameworks": [
+        "httpx",
+        "playwright",
+        "locust"
+      ],
+      "filepath": "generated_tests/test_REQ_002_product_listing.py"
+    },
+    {
+      "req_id": "REQ-003",
+      "filename": "test_REQ_003_cart_management.py",
+      "frameworks": [
+        "httpx",
+        "playwright"
+      ],
+      "filepath": "generated_tests/test_REQ_003_cart_management.py"
+    },
+    {
+      "req_id": "REQ-004",
+      "filename": "test_REQ_004_order_placement.py",
+      "frameworks": [
+        "httpx",
+        "playwright",
+        "locust"
+      ],
+      "filepath": "generated_tests/test_REQ_004_order_placement.py"
+    },
+    {
+      "req_id": "REQ-005",
+      "filename": "test_REQ_005_security_etl.py",
+      "frameworks": [
+        "httpx",
+        "databricks-sql-connector"
+      ],
+      "filepath": "generated_tests/test_REQ_005_security_etl.py"
+    }
+  ]
+}
